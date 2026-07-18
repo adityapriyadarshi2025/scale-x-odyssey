@@ -1,0 +1,42 @@
+# Scale x Odyssey — default configuration
+# Everything path-/hyperparam-related lives here, so nothing is hardcoded in code.
+
+paths:
+  data_root:     /content/drive/MyDrive/scale-odyssey/data
+  artifacts_dir: /content/drive/MyDrive/scale-odyssey/artifacts
+  split_json:    /content/drive/MyDrive/scale-odyssey/artifacts/split.json
+
+seed: 42
+
+classes: [nebula, planet, spiral, elliptical, star_cluster]   # label order = index
+
+split:
+  ratios: [0.70, 0.15, 0.15]     # train / val / test on ORIGINS
+  hold_out_source: null          # set to "nasa_lib" to reserve NASA imagery as an OOD test
+
+data:
+  image_size: 224                # resize target (EfficientNet-B0 default)
+  # ImageNet normalization (matches pretrained backbones)
+  norm_mean: [0.485, 0.456, 0.406]
+  norm_std:  [0.229, 0.224, 0.225]
+
+model:
+  backbone:   efficientnet_b0    # timm name; baseline to beat ~93%
+  pretrained: true
+  dropout:    0.2
+
+train:
+  epochs:          30
+  batch_size:      32
+  optimizer:       adamw
+  lr:              3.0e-4
+  weight_decay:    1.0e-4
+  scheduler:       cosine
+  label_smoothing: 0.1
+  class_weighting: true          # counter class imbalance (nebula/planet >> galaxies)
+  early_stop_patience: 6
+  num_workers:     2
+
+wandb:
+  enabled: true
+  project: scale-odyssey

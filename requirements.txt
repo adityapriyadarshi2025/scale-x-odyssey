@@ -1,0 +1,18 @@
+# Colab already ships torch, torchvision, numpy, pandas, pillow, matplotlib,
+# scikit-learn. These are the extras the project needs on top of that.
+# Install in Colab with:  !pip install -r requirements.txt
+
+timm                # pretrained backbones (EfficientNet, etc.)
+wandb               # experiment tracking
+pyyaml              # config loading
+tqdm                # progress bars
+grad-cam            # interpretability / attention maps (bonus rubric)
+
+# Data-acquisition scripts (already run; needed only to re-fetch)
+requests
+astropy
+astroquery
+
+# Pin torch/torchvision ONLY if running outside Colab:
+# torch>=2.1
+# torchvision>=0.16

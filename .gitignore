@@ -1,0 +1,31 @@
+# ─── Data lives on Google Drive, NEVER in git ───────────────────────────────
+data/
+nasa_lib/
+*.png
+*.jpg
+*.jpeg
+*.fits
+
+# ─── Model artifacts (big / regenerable) ────────────────────────────────────
+*.pth
+*.pt
+*.ckpt
+*.onnx
+checkpoints/
+wandb/
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+.env
+
+# ─── OS / editor ────────────────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+
+# NOTE: split.json and audit_report.json are small, reproducible records —
+# keep them committed (do NOT ignore) so runs are judge-inspectable.
