@@ -1,10 +1,6 @@
 # ─── Data lives on Google Drive, NEVER in git ───────────────────────────────
 data/
 nasa_lib/
-*.png
-*.jpg
-*.jpeg
-*.fits
 
 # ─── Model artifacts (big / regenerable) ────────────────────────────────────
 *.pth
