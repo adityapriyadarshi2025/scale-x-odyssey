@@ -51,7 +51,7 @@ OUT_ROOT  = os.path.join(DATA_ROOT, "nasa_lib")
 API_SEARCH = "https://images-api.nasa.gov/search"
 API_ASSET  = "https://images-api.nasa.gov/asset/{}"
 
-TARGET_PER_CLASS = 100     # how many keepers to collect per class (tunable)
+TARGET_PER_CLASS = 300     # how many keepers to collect per class (tunable)
 MAX_ASPECT       = 2.2     # reject panoramas/strips wider/taller than this
 MIN_SIDE_PX      = 200     # reject tiny thumbnails
 PREFERRED_SIZES  = ["~medium.jpg", "~large.jpg", "~orig.jpg", "~small.jpg"]
@@ -60,22 +60,30 @@ REQUEST_PAUSE = 0.5
 RETRIES       = 3
 TIMEOUT       = 60
 
-# Per-class search plan. Multiple queries per class widen coverage; queries are
-# deliberately specific to reduce junk. Order matters (best first).
+# Per-class search plan. Multiple queries per class widen coverage AND instrument
+# variety (Hubble, Cassini, Juno, Voyager) — the point of this diversification
+# pass is to rebalance the single-source classes. Order matters (best first).
 CLASS_QUERIES = {
-    "nebula":       ["Hubble nebula", "emission nebula", "planetary nebula"],
-    "planet":       ["Jupiter planet", "Saturn planet", "Mars planet",
-                     "Neptune planet", "Venus planet", "Uranus planet"],
+    "nebula":       ["Hubble nebula", "emission nebula", "planetary nebula",
+                     "reflection nebula", "supernova remnant", "star forming region nebula",
+                     "Hubble Space Telescope nebula"],
+    "planet":       ["Jupiter planet", "Saturn planet", "Mars planet", "Neptune planet",
+                     "Venus planet", "Uranus planet", "Cassini Saturn", "Juno Jupiter",
+                     "Hubble planet", "gas giant planet", "Voyager planet"],
     "spiral":       ["spiral galaxy", "barred spiral galaxy"],
     "elliptical":   ["elliptical galaxy", "lenticular galaxy"],
-    "star_cluster": ["globular cluster", "open star cluster", "star cluster Hubble"],
+    "star_cluster": ["globular cluster", "open star cluster", "star cluster Hubble",
+                     "globular cluster Hubble", "open cluster stars", "NGC star cluster",
+                     "star cluster"],
 }
 
-# Titles/keywords that mean "not a real telescope image" -> drop.
+# Titles/keywords that mean "not a real celestial image" -> drop.
+# (adds hardware terms so planet queries don't pull spacecraft/rover/lander photos)
 JUNK_RX = re.compile(
     r"\b(illustration|artist|concept|rendering|render|animation|diagram|"
     r"infographic|chart|graph|map|poster|logo|model|schematic|simulation|"
-    r"artwork|impression|cutaway|timeline|comparison|label(l)?ed)\b",
+    r"artwork|impression|cutaway|timeline|comparison|label(l)?ed|"
+    r"rover|lander|clean\s?room|technician|engineer|spacesuit|launch\s?pad)\b",
     re.IGNORECASE,
 )
 
