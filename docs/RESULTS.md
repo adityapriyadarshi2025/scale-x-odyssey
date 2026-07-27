@@ -6,9 +6,11 @@ raw image data alone, without hand-engineered astrophysical features.
 
 **Headline result.** A fine-tuned EfficientNet-B0 reaches **95.2 % accuracy on a
 held-out test set** (96.4 % on validation), clearing the project's baseline
-target of ~93 %. The evaluation is leakage-safe and reproducible from a fixed
-seed, and is accompanied by per-class metrics, a confusion matrix, and Grad-CAM
-attention maps.
+target of ~93 %. On a separate **out-of-distribution test of real Hubble imagery
+it scores 57.7 %** — an honestly reported ~38-point drop that quantifies its
+generalisation to an unseen instrument. The evaluation is leakage-safe and
+reproducible from a fixed seed, and is accompanied by per-class metrics, a
+confusion matrix, and Grad-CAM attention maps.
 
 ---
 
@@ -119,6 +121,32 @@ A confusion matrix (`confusion_test.png`) and Grad-CAM attention maps
 attends to the celestial object itself rather than background artefacts,
 satisfying the interpretability requirement.
 
+### 3.1 Out-of-distribution (OOD) test — real Hubble imagery
+
+To measure generalisation to imagery from a telescope the model never trained
+on, a separate held-out test set of **286 real ESA/Hubble press images**
+(≈57 per class, sourced independently of all training data and labelled from
+Hubble's own object taxonomy) was evaluated. This is a genuine out-of-
+distribution probe: the training data is dominated by SpaceNet astrophotography
+and SDSS/survey cutouts, whereas these are Hubble images with a different
+instrument, processing pipeline, framing and colour.
+
+| Class | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| nebula | 0.764 | 0.700 | 0.730 | 60 |
+| planet | 0.853 | 0.483 | 0.617 | 60 |
+| star_cluster | 0.487 | 0.679 | 0.567 | 56 |
+| elliptical | 0.458 | 0.667 | 0.543 | 57 |
+| spiral | 0.500 | 0.340 | 0.404 | 53 |
+| **accuracy** | | | **0.577** | 286 |
+| macro avg | 0.612 | 0.574 | 0.572 | 286 |
+
+**OOD accuracy is 0.577 — a ~38-point drop from the 0.952 in-distribution test.**
+This gap is expected and is the point of the exercise: it honestly quantifies how
+distribution-specific the model is. A model scoring ~0.95 on both would suggest
+the OOD set was not truly out-of-distribution. Confusion matrix saved as
+`confusion_ood_hubble.png`.
+
 ---
 
 ## 4. Analysis
@@ -141,6 +169,20 @@ raising the headline number is to **increase the spiral and elliptical training
 data** (e.g. additional Galaxy Zoo images at the same confidence threshold),
 rather than further tuning the model.
 
+The OOD test reinforces the same conclusion from a second direction. Nebula
+generalises best (F1 0.730), consistent with Hubble nebulae resembling the
+SpaceNet ones. Planet keeps high precision (0.853) but loses half its recall
+(0.483), i.e. it rarely mislabels something as a planet but fails to recognise
+many unfamiliar Hubble planet views. Crucially, **the galaxy classes are the
+weakest out-of-distribution too — spiral collapses to F1 0.404** — so the two
+starved classes are both the in-distribution bottleneck and the most brittle to
+an unseen instrument. This double signal is why the next data-collection step
+targets galaxies specifically, and does so with a *different* instrument (DESI
+Legacy Survey / DECaLS) rather than more of the same SDSS-style imagery: adding
+instrument diversity is expected to narrow the OOD gap, not just raise the
+in-distribution score. Re-running this identical OOD test after that retrain will
+give a direct before/after measure of the improvement.
+
 ---
 
 ## 5. Reproducibility & engineering
@@ -154,12 +196,19 @@ results are exactly reproducible and inspectable.
 
 ---
 
-## 6. Open items & next steps
+## 6. Status & next steps
 
-- **Boost spiral/elliptical data** — the model's identified bottleneck; the
-  single most valuable improvement.
-- **Out-of-distribution evaluation** — re-run with the NASA-library imagery held
-  out as a separate OOD test to quantify cross-instrument generalisation.
+Completed: full leakage-safe pipeline; 5-class model fine-tuned to **0.952 test
+accuracy** (beats the ~0.93 baseline); per-class metrics, confusion matrix and
+Grad-CAM; and a **real-Hubble OOD test (0.577)** quantifying generalisation.
+
+Next:
+
+- **Boost spiral/elliptical with DECaLS (Galaxy10) imagery** — a third,
+  different-instrument source for the two weakest classes; then retrain. This is
+  the identified bottleneck both in- and out-of-distribution.
+- **Re-run the OOD test after retraining** — direct before/after on the 0.577
+  baseline to measure whether instrument diversity narrows the gap.
 - **Hyperparameter / backbone scaling** — B1–B3 for additional ceiling once the
   data is balanced.
 - **Bonus tasks (optional rubric)** — image captioning, object localisation,
