@@ -272,7 +272,33 @@ specifically, not more ground-based survey cutouts.
 
 ---
 
-## 6. Reproducibility & engineering
+## 6. Bonus features (Phase 4)
+
+All four optional rubric tasks were implemented, each reusing the trained model —
+no separate models to maintain:
+
+- **Interactive web application** (`app.py`, Gradio) — upload an image → predicted
+  class, per-class confidence bars, and a Grad-CAM attention overlay; served on a
+  public share link.
+- **Anomaly / out-of-distribution detection** (`src/anomaly.py`) — a post-hoc
+  detector (max-softmax and energy scores) that flags images unlike the five known
+  classes, with no retraining or extra labels. Quantified against the real-Hubble
+  OOD set: max-softmax reaches **AUROC 0.76**, flagging ~39 % of OOD images at a
+  5 % in-distribution false-positive rate. This operationalises the §5 OOD finding.
+- **Object localization** (`src/localize.py`) — weakly-supervised bounding boxes
+  derived directly from the Grad-CAM map (no box labels). Tight on compact objects
+  (planets, star clusters, galaxies); looser on diffuse nebulae, as expected since
+  a nebula fills the frame.
+- **Image captioning** (`src/caption.py`) — short natural-language descriptions
+  composed from the predicted class plus measured image attributes (colour, bright
+  core, shape, extent, star-richness), e.g. *"A spiral galaxy with a bright central
+  core and extended spiral arms."* Template-driven rather than a generic caption
+  model, which keeps the descriptions accurate on astronomical imagery instead of
+  hallucinating.
+
+---
+
+## 7. Reproducibility & engineering
 
 Code lives in a GitHub repository (`src/` pipeline modules, `scripts/` for
 one-off data acquisition, `configs/default.yaml` for all paths and
@@ -283,16 +309,14 @@ results are exactly reproducible and inspectable.
 
 ---
 
-## 7. Status & next steps
+## 8. Status & next steps
 
-**Completed.** End-to-end leakage-safe pipeline; a baseline model (0.952 test)
-and a diversified model (0.938 test on a harder, balanced set with markedly
-stronger galaxy classes); confusion matrices and Grad-CAM interpretability; a
-held-out real-Hubble OOD test with a full before/after; a multi-source dataset
-(5,851 images, 2–3 real sources per class); and an interactive Gradio web demo
-(upload → prediction + confidence + Grad-CAM). All reproducible from the repo.
-
-**Bonus delivered.** Interactive web application (Phase 4).
+**Completed.** End-to-end leakage-safe pipeline; a baseline model (0.952 test) and
+a diversified model (0.938 test on a harder, balanced set with markedly stronger
+galaxy classes); confusion matrices and Grad-CAM interpretability; a held-out
+real-Hubble OOD test with a full before/after and a genuine finding (§5); a
+multi-source dataset (5,851 images, 2–3 real sources per class); and **all four
+Phase-4 bonus features** (§6). Everything is reproducible from the repo.
 
 **Future work.**
 
