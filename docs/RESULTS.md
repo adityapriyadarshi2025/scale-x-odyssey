@@ -97,6 +97,9 @@ only, no hue/saturation shifts), because colour can carry physical meaning. A
 light, occasional Gaussian blur is included deliberately to mimic different
 telescopes' seeing and resolution, adding cross-instrument robustness.
 Validation and test images are only resized, centre-cropped and normalised.
+(This colour-light choice describes the baseline and diversified models; **§5.5
+revises it to colour-robust** — hue/saturation jitter + random grayscale — after
+a diagnostic showed colour-brittleness, producing the final deployed model.)
 
 **Training.** AdamW (lr 3×10⁻⁴, weight decay 10⁻⁴) with a cosine-annealing
 schedule; cross-entropy loss with **class weighting** (the galaxy classes have

@@ -47,19 +47,22 @@ image of M51 that the earlier model called a star cluster is now classified
 ## Model & method
 
 EfficientNet-B0 pretrained on ImageNet, fine-tuned end-to-end with a fresh
-5-class head (~4 M params). Geometry-heavy / colour-light augmentation (rotations
-and flips are free for astronomical objects; colour is kept faithful).
-AdamW + cosine schedule, class-weighted loss, best-validation checkpointing.
-Everything is config-driven (`configs/default.yaml`) and seeded.
+5-class head (~4 M params). Geometry-heavy augmentation (rotations and flips are
+free for astronomical objects); the final **colour-robust** model adds
+hue/saturation jitter and occasional grayscale after a diagnostic exposed
+colour-brittleness on cross-instrument imagery (report §5.5). AdamW + cosine
+schedule, class-weighted loss, best-validation checkpointing. Everything is
+config-driven (`configs/default.yaml`) and seeded.
 
 ## Dataset
 
-Multi-source (2–3 independent real sources per class) to prevent single-source
-overfitting — 5,851 images across the five classes, plus a separate Hubble OOD
+Multi-source (2–4 independent real sources per class) to prevent single-source
+overfitting — ~5,900 images across the five classes, plus a separate Hubble OOD
 test set. Sources: SpaceNet FLARE, Galaxy Zoo 2 (SDSS), DESI Legacy Survey
-(DECaLS / Galaxy10), Pan-STARRS/DSS2 survey cutouts, the NASA Image Library, and
-ESA/Hubble (OOD). Split is **leakage-safe on origins** (augmented variants of one
-object never straddle train/test). Acquisition is fully scripted in `scripts/`.
+(DECaLS / Galaxy10), Pan-STARRS/DSS2 survey cutouts, the NASA Image Library,
+real space-telescope (Hubble/JWST) galaxies, and ESA/Hubble (OOD). Split is
+**leakage-safe on origins** (augmented variants of one object never straddle
+train/test). Acquisition is fully scripted in `scripts/`.
 
 ## Repository structure
 
