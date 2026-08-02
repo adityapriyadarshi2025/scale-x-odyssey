@@ -270,6 +270,22 @@ nuanced conclusion — and it points the way for future work: to close the Hubbl
 gap, the galaxy classes need *Hubble-like* (space-telescope) training data
 specifically, not more ground-based survey cutouts.
 
+### 5.4 Live confirmation in the deployed demo
+
+Testing the deployed in-browser demo on fresh images reproduces §5.3 exactly and
+visibly. A **survey-style galaxy cutout** (the distribution the model trained on)
+is classified correctly and confidently — a held-out DECaLS spiral returns
+*Spiral Galaxy at 96 %*. **Full-resolution space-telescope images** behave as the
+OOD analysis predicts: a Hubble mosaic of M51 and a Hubble image of M100 are
+misclassified (M100 → nebula at 51 %), because at native resolution their stars
+are resolved as points and their star-forming regions glow like nebular gas —
+cues absent from the low-resolution survey cutouts the galaxy classes learned
+from. Importantly, in every such case the **out-of-distribution flag fires**
+(confidence below the 0.60 threshold), so the demo signals its own uncertainty
+rather than asserting a confident wrong answer. This is the intended, honest
+behaviour: strong on in-distribution imagery, and self-aware on inputs outside
+the training distribution.
+
 ---
 
 ## 6. Bonus features (Phase 4)
@@ -277,9 +293,14 @@ specifically, not more ground-based survey cutouts.
 All four optional rubric tasks were implemented, each reusing the trained model —
 no separate models to maintain:
 
-- **Interactive web application** (`app.py`, Gradio) — upload an image → predicted
-  class, per-class confidence bars, and a Grad-CAM attention overlay; served on a
-  public share link.
+- **Interactive web application** — two forms. A Gradio app (`app.py`) gives
+  predicted class, per-class confidence bars, and a Grad-CAM attention overlay on
+  a public share link. For evaluation, the model is also **deployed as a static,
+  in-browser demo** (`index.html`, exported to ONNX and run client-side with
+  onnxruntime-web) at
+  **https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey** — no server,
+  no setup: an evaluator drops in an image and gets the class, confidence bars, a
+  caption, and the out-of-distribution flag instantly.
 - **Anomaly / out-of-distribution detection** (`src/anomaly.py`) — a post-hoc
   detector (max-softmax and energy scores) that flags images unlike the five known
   classes, with no retraining or extra labels. Quantified against the real-Hubble
@@ -315,8 +336,10 @@ results are exactly reproducible and inspectable.
 a diversified model (0.938 test on a harder, balanced set with markedly stronger
 galaxy classes); confusion matrices and Grad-CAM interpretability; a held-out
 real-Hubble OOD test with a full before/after and a genuine finding (§5); a
-multi-source dataset (5,851 images, 2–3 real sources per class); and **all four
-Phase-4 bonus features** (§6). Everything is reproducible from the repo.
+multi-source dataset (5,851 images, 2–3 real sources per class); **all four
+Phase-4 bonus features** (§6); and a **publicly deployed, in-browser demo** (ONNX
+static Space) requiring no setup to evaluate. Everything is reproducible from the
+repo.
 
 **Future work.**
 
