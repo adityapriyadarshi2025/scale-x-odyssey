@@ -5,16 +5,22 @@ Two pipelines:
   * TRAIN: resize/crop -> geometry augmentation -> (light photometric) -> normalize
   * EVAL  (val/test/ood): resize -> center-crop -> normalize   (NO augmentation)
 
-Design choice — why geometry-heavy, colour-light:
+Design choice — geometry-heavy, and (revised) colour-ROBUST:
   Astronomical objects have NO canonical orientation or handedness. A galaxy is
   just as valid rotated 37 deg or mirrored, so full rotations + h/v flips are
   "free" label-preserving augmentation and the strongest lever we have.
-  COLOUR, by contrast, can be physically meaningful (emission-line ratios, filter
-  choices), so we keep photometric jitter minimal — mild brightness/contrast
-  only, and NO hue/saturation shifts that could turn one class into another.
-  A little blur/noise is included on purpose: it mimics different telescopes'
-  seeing/resolution, which is exactly the cross-instrument robustness we want
-  for an unknown test set.
+  COLOUR: the original pipeline kept photometric jitter minimal (brightness/
+  contrast only, no hue/saturation) to preserve physically-meaningful colour.
+  A diagnostic on real Hubble imagery showed this backfired: the model became
+  colour-BRITTLE — desaturating a Hubble spiral swung its prediction across three
+  classes (star_cluster -> planet), proving it keyed on colour statistics rather
+  than morphology, which is why cross-instrument (Hubble-processed) images fail.
+  The pipeline now deliberately adds hue/saturation jitter and occasional random
+  grayscale so the network cannot lean on one instrument's exact colour palette
+  and is forced onto shape. A little blur/noise mimics different telescopes'
+  seeing/resolution. Trade-off: colour still carries real signal for nebula/
+  planet, so jitter is moderate and the effect is measured before/after on both
+  the in-distribution and the Hubble OOD test.
 
 Usage:
     from src.transforms import get_transforms
@@ -45,8 +51,13 @@ def train_transforms(image_size=224, mean=IMAGENET_MEAN, std=IMAGENET_STD,
 
     # scale range for the random zoom/crop (gentler when lighter)
     scale = {"light": (0.9, 1.0), "standard": (0.8, 1.0), "heavy": (0.65, 1.0)}[strength]
-    # photometric jitter magnitude (kept small everywhere; 0 when light)
-    bc = {"light": 0.0, "standard": 0.10, "heavy": 0.20}[strength]
+    # brightness/contrast jitter magnitude
+    bc = {"light": 0.0, "standard": 0.15, "heavy": 0.25}[strength]
+    # colour-ROBUSTNESS: saturation + hue jitter (breaks reliance on exact palette)
+    sat = {"light": 0.0, "standard": 0.30, "heavy": 0.50}[strength]
+    hue = {"light": 0.0, "standard": 0.05, "heavy": 0.10}[strength]
+    # probability of dropping colour entirely (forces the net onto shape)
+    gray_p = {"light": 0.0, "standard": 0.15, "heavy": 0.25}[strength]
 
     ops = [
         # random zoom + reframe to the target size (keeps object roughly centred)
@@ -57,9 +68,13 @@ def train_transforms(image_size=224, mean=IMAGENET_MEAN, std=IMAGENET_STD,
         transforms.RandomRotation(180, fill=0),
     ]
 
-    # light photometric jitter (brightness/contrast ONLY — no hue/saturation)
-    if bc > 0:
-        ops.append(transforms.ColorJitter(brightness=bc, contrast=bc))
+    # photometric jitter — now includes saturation + hue for colour robustness
+    if bc > 0 or sat > 0 or hue > 0:
+        ops.append(transforms.ColorJitter(brightness=bc, contrast=bc,
+                                          saturation=sat, hue=hue))
+    # occasionally drop colour so the model must decide on morphology
+    if gray_p > 0:
+        ops.append(transforms.RandomGrayscale(p=gray_p))
 
     # mild blur to mimic different telescope seeing/resolution (cross-instrument)
     if strength in ("standard", "heavy"):
