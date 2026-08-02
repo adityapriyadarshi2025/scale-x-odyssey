@@ -57,9 +57,9 @@ SOURCES = {
     "nebula":       [("spacenet_raw/nebula",   "spacenet"), ("nasa_lib/nebula",       "stem")],
     "planet":       [("spacenet_raw/planet",   "spacenet"), ("nasa_lib/planet",       "stem")],
     "spiral":       [("galaxy_zoo/spiral",     "stem"),     ("nasa_lib/spiral",       "stem"),
-                     ("legacy_gal/spiral",     "stem")],
+                     ("legacy_gal/spiral",     "stem"),     ("spacetel_gal/spiral",   "stem")],
     "elliptical":   [("galaxy_zoo/elliptical", "stem"),     ("nasa_lib/elliptical",   "stem"),
-                     ("legacy_gal/elliptical", "stem")],
+                     ("legacy_gal/elliptical", "stem"),     ("spacetel_gal/elliptical", "stem")],
     "star_cluster": [("star_cluster",          "stem"),     ("nasa_lib/star_cluster", "stem")],
 }
 
