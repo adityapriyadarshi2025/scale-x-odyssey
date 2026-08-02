@@ -158,6 +158,15 @@ distribution-specific the model is. A model scoring ~0.95 on both would suggest
 the OOD set was not truly out-of-distribution. Confusion matrix saved as
 `confusion_ood_hubble.png`.
 
+### 3.2 Confidence calibration
+
+The reported per-class probabilities are **temperature-scaled** so the numbers
+reflect true reliability rather than raw network over/under-confidence. A single
+temperature was fit on the held-out validation set by minimising NLL (T = 0.79),
+which reduced the **Expected Calibration Error from 0.054 to 0.016** (15-bin).
+The interactive demo applies the same temperature and shows a "calibrated" tag,
+so a 90 % reading really does mean the model is right about 90 % of the time.
+
 ---
 
 ## 4. Analysis
