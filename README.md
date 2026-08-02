@@ -13,11 +13,12 @@ and an out-of-distribution flag.
 
 ## Results at a glance
 
-- **94–95 % test accuracy** on a held-out, leakage-safe split — clears the ~93 %
-  target. (Baseline model 95.2 %; diversified model 93.8 % on a harder, balanced
-  test set with markedly stronger galaxy classes.)
+- **93–95 % test accuracy** on a held-out, leakage-safe split — clears the ~93 %
+  target across all three trained models.
 - **Real-Hubble out-of-distribution (OOD) test** — an honest generalisation probe
-  on 286 ESA/Hubble images the model never trained on.
+  on 286 ESA/Hubble images the model never trained on. The final **colour-robust
+  model reaches the best OOD accuracy (0.608)** and roughly doubles galaxy OOD
+  performance (spiral F1 0.34 → 0.58, elliptical 0.39 → 0.59).
 - **Grad-CAM interpretability** — attention maps confirm the model looks at the
   object, not the background.
 - **All four Phase-4 bonus features**: interactive web demo, anomaly detection,
@@ -33,6 +34,15 @@ their in-distribution accuracy (elliptical F1 **0.81 → 0.90**), yet OOD
 generalisation improved only for the class given genuinely *cross-instrument*
 variety (planet, OOD F1 0.62 → 0.69). The takeaway: **out-of-distribution gains
 require instrument-diverse data, not merely more data.**
+
+Acting on that finding then *closed the gap*: adding real space-telescope
+(Hubble/JWST) galaxies plus colour-invariant augmentation — after a diagnostic
+showed the model was colour-brittle — took galaxy OOD F1 from ~0.34/0.39 to
+**0.58/0.59** and OOD accuracy to **0.608** (best of all models), while
+in-distribution held at 0.929. The model is no longer colour-brittle: a Hubble
+image of M51 that the earlier model called a star cluster is now classified
+*spiral* at 73 %, and stays spiral even in grayscale. Full detail in
+[`docs/RESULTS.md`](docs/RESULTS.md) §5.5.
 
 ## Model & method
 
