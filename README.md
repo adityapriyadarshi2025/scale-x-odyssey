@@ -6,10 +6,16 @@ Planetary Object** — from raw image data, with interpretability, an
 out-of-distribution study, and four bonus features. Built for Summer Siege 2026
 (Technical Council).
 
-**🚀 Live demo:** https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey
-— drop in an astronomical image and the model classifies it **entirely in your
-browser** (ONNX / onnxruntime-web, no server), with confidence bars, a caption,
-and an out-of-distribution flag.
+<div align="center">
+
+## 🚀 [Try the live demo →](https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey)
+
+[![Open in Hugging Face Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-lg.svg)](https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey)
+
+**Drop in an astronomical image — classified _entirely in your browser_ (ONNX, no server),**
+**with confidence bars, a caption, and an out-of-distribution flag.**
+
+</div>
 
 ## Results at a glance
 
