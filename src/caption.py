@@ -31,10 +31,12 @@ def _attributes(rgb):
     """Measure interpretable attributes from an HxWx3 float image in [0,1]."""
     g = rgb @ np.array([0.299, 0.587, 0.114])
     mr, mg, mb = rgb[..., 0].mean(), rgb[..., 1].mean(), rgb[..., 2].mean()
-    if mb > mr * 1.15 and mb > mg * 1.05:
-        colour = "blue-hued"
-    elif mr > mb * 1.15 and mr > mg:
+    if mr > mb * 1.12 and mr > mg * 1.05:
         colour = "reddish"
+    elif mb > mr * 1.12 and mg > mr * 1.08 and abs(mb - mg) < 0.35 * max(mb, mg):
+        colour = "teal"                       # blue-green (OIII / planetary nebulae)
+    elif mb > mr * 1.12 and mb > mg * 1.05:
+        colour = "blue-hued"
     elif mg > mr * 1.1 and mg > mb * 1.1:
         colour = "green-hued"
     else:
@@ -61,22 +63,51 @@ def _attributes(rgb):
     return colour, core, shape, frac, nstar
 
 
-def caption_for(cls, attrs):
+def caption_for(cls, attrs, conf=None):
+    """Compose a caption from MEASURED attributes. Every adjective traces to a
+    measurement (dominant colour, extent, central concentration, elongation, star
+    richness) — nothing is invented. If conf is low, the caption hedges."""
     colour, core, shape, frac, nstar = attrs
+    ext = " filling much of the frame" if frac > 0.30 else " set against dark space"
+
     if cls == "spiral":
-        return (f"A spiral galaxy with {'a bright central core' if core else 'a diffuse centre'} "
-                "and extended spiral arms.")
-    if cls == "elliptical":
-        return f"An elliptical galaxy — a smooth, {shape}, largely featureless {colour} glow."
-    if cls == "nebula":
-        extent = "filling much of the frame" if frac > 0.30 else "set against a dark background"
-        return f"A {colour} nebula, a diffuse cloud of gas and dust {extent}."
-    if cls == "star_cluster":
-        rich = "densely packed" if nstar > 25 else "loosely scattered"
-        return f"A star cluster — a {rich} grouping of many individual stars."
-    if cls == "planet":
-        return f"A planetary object showing {'a bright, well-defined disc' if core else 'a round disc'}."
-    return f"A {cls}."
+        if core and colour == "blue-hued":
+            t = "A blue, actively star-forming spiral galaxy with a bright core and sweeping arms."
+        elif core:
+            t = "A spiral galaxy with a bright central core and winding arms."
+        elif colour == "reddish":
+            t = "An older, reddish spiral galaxy with a soft, diffuse centre."
+        else:
+            t = "A spiral galaxy with arms winding outward from its centre."
+    elif cls == "elliptical":
+        col = "" if colour == "multicoloured" else colour + " "
+        t = (f"An elongated, cigar-shaped elliptical galaxy — a smooth {col}glow."
+             if shape == "elongated"
+             else f"A nearly round elliptical galaxy — a smooth, featureless {col}glow.")
+    elif cls == "nebula":
+        if colour == "reddish":
+            t = "A reddish emission nebula, glowing with ionised hydrogen" + ext + "."
+        elif colour == "blue-hued":
+            t = "A blue reflection nebula — starlight scattered off surrounding dust" + ext + "."
+        elif colour in ("teal", "green-hued") and frac < 0.15:
+            t = "A compact planetary nebula — a glowing shell of gas cast off by a dying star."
+        elif colour in ("teal", "green-hued"):
+            t = "A teal nebula of glowing ionised gas" + ext + "."
+        else:
+            t = f"A {colour} nebula, a diffuse cloud of gas and dust" + ext + "."
+    elif cls == "star_cluster":
+        dense = nstar > 25 or core
+        t = ("A dense, spherical globular cluster — many stars concentrated toward a bright core."
+             if dense else "A loose, scattered open cluster of stars.")
+    elif cls == "planet":
+        t = ("A planetary object showing a bright, sharply defined disc." if core
+             else "A planetary object showing a round disc against dark space.")
+    else:
+        t = f"A {cls}."
+
+    if conf is not None and conf < 0.60:
+        t = "Possibly " + t[0].lower() + t[1:]
+    return t
 
 
 def caption_image(model, pil, cfg, device):
@@ -87,7 +118,7 @@ def caption_image(model, pil, cfg, device):
         probs = torch.softmax(model(x), 1)[0]
     pred = int(probs.argmax()); conf = float(probs[pred])
     rgb = np.asarray(pil.convert("RGB").resize((size, size)), dtype=np.float32) / 255.0
-    cap = caption_for(cfg["classes"][pred], _attributes(rgb))
+    cap = caption_for(cfg["classes"][pred], _attributes(rgb), conf)
     return cap, cfg["classes"][pred], conf, rgb
 
 
