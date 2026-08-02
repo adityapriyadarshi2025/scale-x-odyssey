@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scale × Odyssey — Astronomical Image Classifier</title>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/ort.min.js"></script>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#070912; --card:rgba(22,28,46,.72); --border:rgba(90,124,255,.18);
+    --ink:#eaf0ff; --muted:#9aa4c4; --accent:#6c8cff; --accent2:#a06bff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; min-height:100%; }
+  body{
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink); line-height:1.55;
+    background:
+      radial-gradient(1100px 600px at 78% -10%, rgba(160,107,255,.18), transparent 60%),
+      radial-gradient(900px 500px at 8% 8%, rgba(60,120,255,.16), transparent 55%),
+      #070912;
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:40px 20px;
+  }
+  /* faint starfield */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.5;
+    background-image:
+      radial-gradient(1.4px 1.4px at 20% 30%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 70% 60%, #cfe0ff, transparent),
+      radial-gradient(1.6px 1.6px at 40% 80%, #fff, transparent),
+      radial-gradient(1.1px 1.1px at 85% 25%, #bcd0ff, transparent),
+      radial-gradient(1.3px 1.3px at 55% 15%, #fff, transparent),
+      radial-gradient(1.1px 1.1px at 12% 68%, #dfe8ff, transparent);
+    background-repeat:no-repeat;
+  }
+  .wrap{ width:100%; max-width:720px; margin:0 auto; position:relative; text-align:center; }
+  .brand{ display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:4px; }
+  .logo{ font-size:1.7rem; filter:drop-shadow(0 0 10px rgba(160,107,255,.6)); }
+  h1{
+    font-size:1.85rem; margin:0; letter-spacing:.2px; font-weight:800;
+    background:linear-gradient(90deg,#cdd7ff,#9db4ff 45%,#c9a8ff);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{ color:var(--muted); margin:6px auto 26px; font-size:.96rem; max-width:560px; }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:20px; margin-bottom:18px; backdrop-filter:blur(8px);
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  .drop{
+    display:block;
+    border:1.5px dashed rgba(120,150,255,.35); border-radius:14px; padding:40px 20px;
+    text-align:center; cursor:pointer; transition:.18s ease;
+  }
+  .drop:hover{ border-color:var(--accent); background:rgba(108,140,255,.07);
+    box-shadow:inset 0 0 40px rgba(108,140,255,.08); }
+  .drop strong{ font-size:1.05rem; }
+  .drop input{ display:none; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent);
+    display:inline-block; margin-right:7px; box-shadow:0 0 10px var(--accent);
+    animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:.35} 50%{opacity:1} }
+  #status{ color:var(--muted); font-size:.9rem; margin-top:10px; }
+
+  #result{ display:none; opacity:0; transform:translateY(8px); transition:.45s ease; text-align:left; }
+  #result.show{ opacity:1; transform:none; }
+  .grid{ display:grid; grid-template-columns:1fr 1.15fr; gap:20px; align-items:start; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+  .preview{ width:100%; border-radius:12px; display:block; border:1px solid var(--border); }
+
+  .badge{
+    display:inline-block; padding:6px 14px; border-radius:999px; font-weight:700;
+    font-size:1.05rem; margin-bottom:14px; border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.04);
+  }
+  .bar{ height:26px; background:rgba(255,255,255,.05); border-radius:8px; overflow:hidden;
+    margin:7px 0; position:relative; }
+  .bar > span{ display:block; height:100%; width:0; border-radius:8px; transition:width .7s cubic-bezier(.2,.7,.2,1); }
+  .bar > b{ position:absolute; left:10px; top:0; line-height:26px; font-size:.82rem; font-weight:600; }
+  .bar > i{ position:absolute; right:10px; top:0; line-height:26px; font-size:.82rem; font-style:normal; color:#e6ecff; }
+  .caption{ margin:14px 0 0; padding:12px 14px; border-left:3px solid var(--accent2);
+    background:rgba(160,107,255,.08); border-radius:8px; font-style:italic; color:#e4ecff; }
+  .pill{ display:inline-block; margin-top:12px; padding:7px 13px; border-radius:999px;
+    font-size:.86rem; font-weight:600; }
+  .pill.ok{ background:rgba(70,200,130,.14); color:#7ee6a6; border:1px solid rgba(70,200,130,.3); }
+  .pill.warn{ background:rgba(255,190,70,.14); color:#ffd27a; border:1px solid rgba(255,190,70,.3); }
+  footer{ margin-top:26px; font-size:.8rem; color:#6b769a; }
+  footer a{ color:#9db4ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="logo">🌌</span><h1>Scale × Odyssey</h1></div>
+  <p class="sub">Classifies an astronomical image as a <b>Spiral Galaxy</b>, <b>Elliptical Galaxy</b>,
+     <b>Nebula</b>, <b>Star Cluster</b>, or <b>Planetary Object</b> — describes it and flags anything
+     unfamiliar. Runs entirely in your browser (ONNX · EfficientNet-B0).</p>
+
+  <div class="card">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" />
+      <div><strong>Click or drop an astronomical image</strong></div>
+      <div id="status"><span class="dot"></span>loading model…</div>
+    </label>
+  </div>
+
+  <div class="card" id="result">
+    <div class="grid">
+      <div><img class="preview" id="preview" alt="input" /></div>
+      <div>
+        <span class="badge" id="badge">—</span>
+        <div id="bars"></div>
+        <p class="caption" id="caption"></p>
+        <span class="pill" id="ood"></span>
+      </div>
+    </div>
+  </div>
+
+  <footer>EfficientNet-B0, fine-tuned on a multi-source dataset (94–95% test accuracy).
+     Inference runs client-side.</footer>
+</div>
+
+<script>
+const CLASSES=["nebula","planet","spiral","elliptical","star_cluster"];
+const PRETTY={nebula:"Nebula",planet:"Planetary Object",spiral:"Spiral Galaxy",
+              elliptical:"Elliptical Galaxy",star_cluster:"Star Cluster"};
+const ACCENT={nebula:"#e05fb0",planet:"#f0a24b",spiral:"#5b8cff",
+              elliptical:"#e8c24a",star_cluster:"#3fd0d0"};
+const SIZE=224, MEAN=[0.485,0.456,0.406], STD=[0.229,0.224,0.225], OOD_T=0.60;
+let session=null;
+
+ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/";
+ort.env.wasm.numThreads=1;   // static hosts lack COOP/COEP → force single-thread wasm
+
+(async()=>{
+  try{
+    session=await ort.InferenceSession.create("model.onnx",{executionProviders:["wasm"]});
+    document.getElementById("status").innerHTML='<span class="dot" style="background:#5fd08a;box-shadow:0 0 10px #5fd08a"></span>model ready — drop an image';
+  }catch(e){ document.getElementById("status").innerHTML='<span class="dot" style="background:#ff6b6b;box-shadow:0 0 10px #ff6b6b"></span>couldn’t load model.onnx ('+e+')'; }
+})();
+
+const drop=document.getElementById("drop");
+drop.addEventListener("dragover",e=>e.preventDefault());
+drop.addEventListener("drop",e=>{e.preventDefault(); if(e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]);});
+document.getElementById("file").addEventListener("change",e=>{ if(e.target.files[0]) handle(e.target.files[0]); });
+
+function softmax(a){ const m=Math.max(...a); const e=a.map(x=>Math.exp(x-m));
+  const s=e.reduce((x,y)=>x+y,0); return e.map(x=>x/s); }
+
+function toTensorAndStats(img){
+  const c=document.createElement("canvas"); c.width=SIZE; c.height=SIZE;
+  const ctx=c.getContext("2d");
+  const s=Math.min(img.width,img.height);
+  ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,SIZE,SIZE);
+  const d=ctx.getImageData(0,0,SIZE,SIZE).data;
+  const data=new Float32Array(3*SIZE*SIZE); let sr=0,sg=0,sb=0;
+  for(let i=0;i<SIZE*SIZE;i++){
+    const r=d[i*4]/255,g=d[i*4+1]/255,b=d[i*4+2]/255; sr+=r;sg+=g;sb+=b;
+    data[i]=(r-MEAN[0])/STD[0];
+    data[SIZE*SIZE+i]=(g-MEAN[1])/STD[1];
+    data[2*SIZE*SIZE+i]=(b-MEAN[2])/STD[2];
+  }
+  const n=SIZE*SIZE;
+  return {tensor:new ort.Tensor("float32",data,[1,3,SIZE,SIZE]),mr:sr/n,mg:sg/n,mb:sb/n,pix:d};
+}
+
+function caption(cls,st){
+  const {mr,mg,mb,pix}=st;
+  let colour="multicoloured";
+  if(mb>mr*1.15&&mb>mg*1.05) colour="blue-hued";
+  else if(mr>mb*1.15&&mr>mg) colour="reddish";
+  else if(mg>mr*1.1&&mg>mb*1.1) colour="green-hued";
+  let peak=0; const g=new Float32Array(SIZE*SIZE);
+  for(let i=0;i<SIZE*SIZE;i++){ const l=0.299*pix[i*4]+0.587*pix[i*4+1]+0.114*pix[i*4+2]; g[i]=l; if(l>peak)peak=l; }
+  let bright=0; for(let i=0;i<SIZE*SIZE;i++) if(g[i]>0.6*peak) bright++;
+  const frac=bright/(SIZE*SIZE);
+  if(cls==="spiral") return "A spiral galaxy with a bright central core and extended spiral arms.";
+  if(cls==="elliptical") return "An elliptical galaxy — a smooth, largely featureless "+colour+" glow.";
+  if(cls==="nebula") return "A "+colour+" nebula, a diffuse cloud of gas and dust "+(frac>0.30?"filling much of the frame.":"set against a dark background.");
+  if(cls==="star_cluster") return "A star cluster — a grouping of many individual stars.";
+  return "A planetary object showing a round disc.";
+}
+
+async function handle(f){
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=async()=>{
+    document.getElementById("preview").src=url;
+    if(!session) return;
+    const st=toTensorAndStats(img);
+    const out=await session.run({[session.inputNames[0]]:st.tensor});
+    const probs=softmax(Array.from(out[session.outputNames[0]].data));
+    const order=probs.map((p,i)=>[p,i]).sort((a,b)=>b[0]-a[0]);
+    const top=order[0], cls=CLASSES[top[1]], acc=ACCENT[cls];
+
+    const badge=document.getElementById("badge");
+    badge.textContent=PRETTY[cls];
+    badge.style.borderColor=acc; badge.style.color=acc;
+    badge.style.background=acc+"1f"; badge.style.boxShadow="0 0 22px "+acc+"55";
+
+    let html="";
+    for(const [p,i] of order){
+      const col=ACCENT[CLASSES[i]];
+      html+=`<div class="bar"><span data-w="${(p*100).toFixed(1)}" style="background:linear-gradient(90deg,${col},${col}bb)"></span>`+
+            `<b>${PRETTY[CLASSES[i]]}</b><i>${(p*100).toFixed(1)}%</i></div>`;
+    }
+    const bars=document.getElementById("bars"); bars.innerHTML=html;
+    requestAnimationFrame(()=>{ bars.querySelectorAll("span").forEach(s=>{ s.style.width=s.dataset.w+"%"; }); });
+
+    document.getElementById("caption").textContent='"'+caption(cls,st)+'"';
+    const ood=document.getElementById("ood");
+    if(top[0]<OOD_T){ ood.className="pill warn";
+      ood.textContent=`⚠️ Low confidence (${(top[0]*100).toFixed(0)}%) — possibly outside the five known classes`; }
+    else{ ood.className="pill ok";
+      ood.textContent=`✅ Confident (${(top[0]*100).toFixed(0)}%) — one of the five known classes`; }
+    const res=document.getElementById("result"); res.style.display="block";
+    requestAnimationFrame(()=>res.classList.add("show"));
+  };
+  img.src=url;
+}
+</script>
+</body>
+</html>
