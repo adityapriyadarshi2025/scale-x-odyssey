@@ -8,7 +8,7 @@ out-of-distribution study, and four bonus features. Built for Summer Siege 2026
 
 <div align="center">
 
-## 🚀 [Try the live demo →](https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey)
+##[Try the live demo →](https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey)
 
 [![Open in Hugging Face Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-lg.svg)](https://huggingface.co/spaces/Priyadarshi101/scale-x-odyssey)
 
